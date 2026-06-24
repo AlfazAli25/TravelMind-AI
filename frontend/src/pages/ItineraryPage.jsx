@@ -68,13 +68,24 @@ const ItineraryPage = () => {
   };
 
   const handleExportPDF = async () => {
+    const makePdfSafeText = (text) => {
+      if (typeof text !== 'string') return text;
+      // Convert rupee symbol to Rs. and euro to EUR
+      let safe = text
+        .replace(/₹/g, 'Rs. ')
+        .replace(/€/g, 'EUR ');
+      // Strip emojis (surrogate pairs and dingbats/miscellaneous symbols)
+      safe = safe.replace(/[\uD83C-\uDBFF\uDC00-\uDFFF\u2600-\u27BF\uFE0F]/g, '');
+      return safe.trim();
+    };
+
     const loadingToast = toast.loading('Generating PDF...');
     try {
       const { default: jsPDF } = await import('jspdf');
       window.jsPDF = jsPDF; // Assign jsPDF to window object for jspdf-autotable extension
       await import('jspdf-autotable');
       const doc = new jsPDF();
-      const title = plan.tripTitle || itinerary.destination || 'TravelMind Itinerary';
+      const title = makePdfSafeText(plan.tripTitle || itinerary.destination || 'TravelMind Itinerary');
 
       // First Page Header Banner
       doc.setFillColor(99, 102, 241);
@@ -90,12 +101,12 @@ const ItineraryPage = () => {
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(11);
       doc.setTextColor(220, 225, 255);
-      doc.text(`Destination: ${plan.destination || itinerary.destination || ''}`, 14, 28);
+      doc.text(makePdfSafeText(`Destination: ${plan.destination || itinerary.destination || ''}`), 14, 28);
       if (itinerary.startDate) {
         const start = new Date(itinerary.startDate);
         const end = new Date(itinerary.endDate);
         if (!isNaN(start.getTime()) && !isNaN(end.getTime())) {
-          doc.text(`Dates: ${start.toLocaleDateString()} — ${end.toLocaleDateString()}  |  🗓️ ${days.length} Days`, 14, 34);
+          doc.text(makePdfSafeText(`Dates: ${start.toLocaleDateString()} — ${end.toLocaleDateString()}  |  ${days.length} Days`), 14, 34);
         }
       }
 
@@ -106,20 +117,20 @@ const ItineraryPage = () => {
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(13);
         doc.setTextColor(17, 24, 39);
-        doc.text('💰 Budget Summary', 14, yPos);
+        doc.text('Budget Summary', 14, yPos);
         yPos += 5;
 
         const budgetItems = Object.entries(plan.totalEstimatedBudget)
           .filter(([key]) => key !== 'currency' && key !== 'total')
           .map(([key, value]) => [
-            key.charAt(0).toUpperCase() + key.slice(1),
+            makePdfSafeText(key.charAt(0).toUpperCase() + key.slice(1)),
             typeof value === 'number'
-              ? formatCurrency(value, plan.totalEstimatedBudget.currency || 'USD', selectedCurrency)
-              : value,
+              ? makePdfSafeText(formatCurrency(value, plan.totalEstimatedBudget.currency || 'USD', selectedCurrency))
+              : makePdfSafeText(value),
           ]);
         budgetItems.push([
           'Total Estimated Budget',
-          formatCurrency(plan.totalEstimatedBudget.total, plan.totalEstimatedBudget.currency || 'USD', selectedCurrency),
+          makePdfSafeText(formatCurrency(plan.totalEstimatedBudget.total, plan.totalEstimatedBudget.currency || 'USD', selectedCurrency)),
         ]);
 
         doc.autoTable({
@@ -149,31 +160,29 @@ const ItineraryPage = () => {
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(13);
         doc.setTextColor(17, 24, 39);
-        doc.text(`Day ${day.dayNumber || ''}: ${day.title || ''}`, 20, yPos);
+        doc.text(makePdfSafeText(`Day ${day.dayNumber || ''}: ${day.title || ''}`), 20, yPos);
         yPos += 5;
 
         if (day.activities?.length) {
           const tableData = day.activities.map((a) => [
-            a.time || '',
-            a.icon || '',
-            a.title || '',
-            a.description || '',
-            a.estimatedCost ? parseAndConvertCost(a.estimatedCost, plan.totalEstimatedBudget?.currency || 'USD', selectedCurrency) : '',
+            makePdfSafeText(a.time || ''),
+            makePdfSafeText(a.title || ''),
+            makePdfSafeText(a.description || ''),
+            a.estimatedCost ? makePdfSafeText(parseAndConvertCost(a.estimatedCost, plan.totalEstimatedBudget?.currency || 'USD', selectedCurrency)) : '',
           ]);
 
           doc.autoTable({
             startY: yPos,
-            head: [['Time', '', 'Activity', 'Description', 'Cost']],
+            head: [['Time', 'Activity', 'Description', 'Cost']],
             body: tableData,
             theme: 'striped',
             styles: { fontSize: 8, cellPadding: 3, valign: 'middle' },
             headStyles: { fillColor: [99, 102, 241], fontStyle: 'bold', textColor: [255, 255, 255] },
             columnStyles: {
-              0: { cellWidth: 20 },
-              1: { cellWidth: 8, halign: 'center' },
-              2: { cellWidth: 42, fontStyle: 'bold' },
-              3: { cellWidth: 87 },
-              4: { cellWidth: 25, halign: 'right' },
+              0: { cellWidth: 22 },
+              1: { cellWidth: 45, fontStyle: 'bold' },
+              2: { cellWidth: 90 },
+              3: { cellWidth: 25, halign: 'right' },
             },
             margin: { left: 14 },
           });
@@ -187,12 +196,12 @@ const ItineraryPage = () => {
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(13);
         doc.setTextColor(17, 24, 39);
-        doc.text('💡 Practical Travel Tips', 14, yPos);
+        doc.text('Practical Travel Tips', 14, yPos);
         yPos += 5;
 
         const tipsData = plan.travelTips.map((tip) => [
-          tip.category.toUpperCase(),
-          tip.tip,
+          makePdfSafeText(tip.category.toUpperCase()),
+          makePdfSafeText(tip.tip),
         ]);
 
         doc.autoTable({
@@ -226,7 +235,7 @@ const ItineraryPage = () => {
         if (i > 1) {
           doc.setDrawColor(230);
           doc.line(14, 13, 196, 13);
-          doc.text(title, 14, 10);
+          doc.text(makePdfSafeText(title), 14, 10);
           doc.text('Travel Itinerary', 196, 10, { align: 'right' });
         }
       }

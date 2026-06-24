@@ -37,7 +37,21 @@ export const generateItinerary = async (extractedData, uploadIds, userId) => {
   } catch (error) {
     itinerary.status = 'failed';
     await itinerary.save();
-    throw ApiError.internal(`Itinerary generation failed: ${error.message}`);
+    
+    let friendlyMessage = 'We encountered an error generating your travel itinerary. Please check your trip details and try again.';
+    const errMsg = error.message || '';
+    
+    if (errMsg.includes('429') || errMsg.toLowerCase().includes('quota') || errMsg.toLowerCase().includes('rate')) {
+      friendlyMessage = 'The Gemini AI service is currently busy or out of quota. Please wait a minute or verify your API key limits.';
+    } else if (errMsg.toLowerCase().includes('api key') || errMsg.toLowerCase().includes('key not found') || errMsg.toLowerCase().includes('invalid')) {
+      friendlyMessage = 'Invalid Gemini API key configured on the server. Please check the backend settings.';
+    } else if (errMsg.toLowerCase().includes('json') || errMsg.toLowerCase().includes('parse')) {
+      friendlyMessage = 'The AI generated an invalid itinerary layout. Please tweak your destination or dates and try again.';
+    } else if (errMsg.toLowerCase().includes('network') || errMsg.toLowerCase().includes('fetch')) {
+      friendlyMessage = 'Unable to reach the Gemini AI servers. Please check your internet connection and try again.';
+    }
+    
+    throw ApiError.internal(friendlyMessage);
   }
 };
 

@@ -67,8 +67,10 @@ export const parseAndConvertCost = (costStr, baseCurrency = 'USD', targetCurrenc
   const converted = convertAmount(rawNum, sourceCurrency, targetCurrency);
   const symbol = CURRENCY_SYMBOLS[targetCurrency] || targetCurrency;
   
-  // Reconstruct string while keeping suffix (e.g. "per person")
-  const suffix = costStr.replace(numMatch[0], '').replace(/[$\u20AC\u00A3\u20B9\u00A5]/g, '').trim();
+  // Reconstruct string while keeping suffix (e.g. "per person") and stripping currency codes/leftover dashes
+  let suffix = costStr.replace(numMatch[0], '').replace(/[$\u20AC\u00A3\u20B9\u00A5]/g, '').trim();
+  suffix = suffix.replace(/\b(usd|inr|eur|gbp|cad|aud|jpy)\b/gi, '').trim();
+  suffix = suffix.replace(/^[-\s/]+/g, '').trim();
   
   return `${symbol}${converted.toLocaleString()}${suffix ? ` ${suffix}` : ''}`;
 };

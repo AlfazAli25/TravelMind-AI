@@ -27,10 +27,29 @@ app.use(async (req, res, next) => {
   }
 });
 
-// CORS
+// CORS Configuration
+const allowedOrigins = [
+  env.CLIENT_URL,
+  'http://localhost:5173',
+  'https://travelmindai.vercel.app'
+];
+
 app.use(
   cors({
-    origin: env.CLIENT_URL,
+    origin: (origin, callback) => {
+      // Allow requests with no origin (like mobile apps, curl, or server-to-server requests)
+      if (!origin) return callback(null, true);
+      
+      const isAllowed = allowedOrigins.includes(origin) || 
+                        origin.endsWith('.vercel.app') ||
+                        (env.CLIENT_URL && origin === env.CLIENT_URL.replace(/\/$/, ''));
+      
+      if (isAllowed) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
     credentials: true,
   })
 );

@@ -47,13 +47,6 @@ export const parseAndConvertCost = (costStr, baseCurrency = 'USD', targetCurrenc
   if (!costStr) return '';
   if (typeof costStr !== 'string') return costStr;
   
-  // Find all matches of numbers (including decimals and commas) in the string
-  const numMatch = costStr.match(/[\d,.]+/);
-  if (!numMatch) return costStr;
-  
-  const rawNum = parseFloat(numMatch[0].replace(/,/g, ''));
-  if (isNaN(rawNum)) return costStr;
-  
   // Try to determine the source currency from the string
   let sourceCurrency = baseCurrency;
   if (costStr.includes('$')) sourceCurrency = 'USD';
@@ -63,14 +56,26 @@ export const parseAndConvertCost = (costStr, baseCurrency = 'USD', targetCurrenc
   else if (costStr.includes('C$') || costStr.toLowerCase().includes('cad')) sourceCurrency = 'CAD';
   else if (costStr.includes('A$') || costStr.toLowerCase().includes('aud')) sourceCurrency = 'AUD';
   else if (costStr.includes('¥') || costStr.toLowerCase().includes('jpy')) sourceCurrency = 'JPY';
-  
-  const converted = convertAmount(rawNum, sourceCurrency, targetCurrency);
+
+  // Check if there are any numbers at all
+  const matches = costStr.match(/[\d,.]+/g);
+  if (!matches) return costStr;
+
+  // Convert each matched number sequence
+  let resultStr = costStr;
+  resultStr = resultStr.replace(/[\d,.]+/g, (match) => {
+    const rawNum = parseFloat(match.replace(/,/g, ''));
+    if (isNaN(rawNum)) return match;
+    const converted = convertAmount(rawNum, sourceCurrency, targetCurrency);
+    return converted.toLocaleString();
+  });
+
   const symbol = CURRENCY_SYMBOLS[targetCurrency] || targetCurrency;
+
+  // Clean up currency symbols/codes and trim
+  resultStr = resultStr.replace(/[$\u20AC\u00A3\u20B9\u00A5]/g, '').trim();
+  resultStr = resultStr.replace(/\b(usd|inr|eur|gbp|cad|aud|jpy)\b/gi, '').trim();
+  resultStr = resultStr.replace(/^[-\s/]+/g, '').trim();
   
-  // Reconstruct string while keeping suffix (e.g. "per person") and stripping currency codes/leftover dashes
-  let suffix = costStr.replace(numMatch[0], '').replace(/[$\u20AC\u00A3\u20B9\u00A5]/g, '').trim();
-  suffix = suffix.replace(/\b(usd|inr|eur|gbp|cad|aud|jpy)\b/gi, '').trim();
-  suffix = suffix.replace(/^[-\s/]+/g, '').trim();
-  
-  return `${symbol}${converted.toLocaleString()}${suffix ? ` ${suffix}` : ''}`;
+  return `${symbol}${resultStr}`;
 };

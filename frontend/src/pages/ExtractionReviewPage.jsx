@@ -156,6 +156,33 @@ const ExtractionReviewPage = () => {
                       </div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         {Object.entries(item).map(([field, value]) => {
+                          if (Array.isArray(value)) {
+                            return value.map((itemVal, itemIdx) => {
+                              const labelText = field === 'passengers' 
+                                ? `Passenger ${itemIdx + 1}` 
+                                : field === 'guests' 
+                                ? `Guest ${itemIdx + 1}` 
+                                : `${field} ${itemIdx + 1}`;
+                              return (
+                                <div key={`${field}.${itemIdx}`}>
+                                  <label className="text-xs text-dark-500 capitalize">{labelText}</label>
+                                  <input
+                                    className="input-field !py-2 !text-sm"
+                                    value={itemVal || ''}
+                                    onChange={(e) => {
+                                      const newArr = [...value];
+                                      newArr[itemIdx] = e.target.value;
+                                      const newItem = { ...item, [field]: newArr };
+                                      const arr = [...(data[section.key] || [])];
+                                      arr[index] = newItem;
+                                      setData((prev) => ({ ...prev, [section.key]: arr }));
+                                    }}
+                                  />
+                                </div>
+                              );
+                            });
+                          }
+
                           if (typeof value === 'object' && value !== null) {
                             return Object.entries(value).map(([subField, subVal]) => (
                               <div key={`${field}.${subField}`}>
@@ -175,7 +202,6 @@ const ExtractionReviewPage = () => {
                               </div>
                             ));
                           }
-                          if (Array.isArray(value)) return null;
                           return (
                             <div key={field}>
                               <label className="text-xs text-dark-500 capitalize">{field}</label>

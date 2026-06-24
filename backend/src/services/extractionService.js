@@ -1,5 +1,4 @@
 import pdfParse from 'pdf-parse';
-import sharp from 'sharp';
 import * as geminiService from './geminiService.js';
 
 /**
@@ -23,19 +22,6 @@ const isTextBasedPDF = async (buffer) => {
 const extractTextFromPDF = async (buffer) => {
   const data = await pdfParse(buffer);
   return data.text;
-};
-
-/**
- * Convert PDF buffer to images for Gemini Vision processing.
- * Uses sharp to convert each page — for simplicity, we convert
- * the entire PDF buffer as a single image if no page-splitting
- * library is available, or we send the PDF to Gemini directly
- * as it supports PDF input.
- */
-const convertPDFToImages = async (buffer) => {
-  // Gemini 2.0 Flash supports PDF input directly,
-  // so we can send the PDF buffer as a document
-  return [{ buffer, mimeType: 'application/pdf' }];
 };
 
 /**

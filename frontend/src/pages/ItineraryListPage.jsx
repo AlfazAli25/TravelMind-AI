@@ -52,6 +52,19 @@ const ItineraryListPage = () => {
     }
   };
 
+  const getDisplayStatus = (trip) => {
+    if (trip.status === 'generating') return 'generating';
+    if (trip.status === 'failed') return 'failed';
+    if (!trip.endDate) return 'upcoming';
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const end = new Date(trip.endDate);
+    end.setHours(0, 0, 0, 0);
+    
+    return end < today ? 'completed' : 'upcoming';
+  };
+
   return (
     <div className="min-h-screen pt-20 pb-12">
       <div className="page-container">
@@ -105,53 +118,58 @@ const ItineraryListPage = () => {
             animate={{ opacity: 1 }}
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
           >
-            {itineraries.map((trip, index) => (
-              <motion.div
-                key={trip._id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05 }}
-              >
-                <Link
-                  to={`/itinerary/${trip._id}`}
-                  className="glass-card block h-full hover:border-primary-500/50 group"
+            {itineraries.map((trip, index) => {
+              const displayStatus = getDisplayStatus(trip);
+              return (
+                <motion.div
+                  key={trip._id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.05 }}
                 >
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-500/20 to-accent-500/20 flex items-center justify-center flex-shrink-0">
-                      <span className="text-lg">✈️</span>
+                  <Link
+                    to={`/itinerary/${trip._id}`}
+                    className="glass-card block h-full hover:border-primary-500/50 group"
+                  >
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-500/20 to-accent-500/20 flex items-center justify-center flex-shrink-0">
+                        <span className="text-lg">✈️</span>
+                      </div>
+                      <button
+                        onClick={(e) => openDeleteModal(trip._id, e)}
+                        className="btn-ghost !p-1.5 text-dark-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <HiOutlineTrash className="w-4 h-4" />
+                      </button>
                     </div>
-                    <button
-                      onClick={(e) => openDeleteModal(trip._id, e)}
-                      className="btn-ghost !p-1.5 text-dark-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      <HiOutlineTrash className="w-4 h-4" />
-                    </button>
-                  </div>
-                  <h3 className="font-semibold text-white group-hover:text-primary-400 transition-colors mb-1">
-                    {trip.destination}
-                  </h3>
-                  <p className="text-dark-400 text-sm mb-3">
-                    {trip.startDate
-                      ? `${new Date(trip.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}${trip.endDate ? ` — ${new Date(trip.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : ''}`
-                      : 'No date set'}
-                  </p>
-                  <div className="flex items-center justify-between">
-                    <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
-                      trip.status === 'completed'
-                        ? 'bg-emerald-500/20 text-emerald-400'
-                        : trip.status === 'generating'
-                        ? 'bg-amber-500/20 text-amber-400'
-                        : 'bg-red-500/20 text-red-400'
-                    }`}>
-                      {trip.status}
-                    </span>
-                    <span className="text-dark-500 text-xs">
-                      {new Date(trip.createdAt).toLocaleDateString()}
-                    </span>
-                  </div>
-                </Link>
-              </motion.div>
-            ))}
+                    <h3 className="font-semibold text-white group-hover:text-primary-400 transition-colors mb-1">
+                      {trip.destination}
+                    </h3>
+                    <p className="text-dark-400 text-sm mb-3">
+                      {trip.startDate
+                        ? `${new Date(trip.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}${trip.endDate ? ` — ${new Date(trip.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : ''}`
+                        : 'No date set'}
+                    </p>
+                    <div className="flex items-center justify-between">
+                      <span className={`px-2.5 py-1 rounded-full text-xs font-medium capitalize ${
+                        displayStatus === 'completed'
+                          ? 'bg-emerald-500/20 text-emerald-400'
+                          : displayStatus === 'upcoming'
+                          ? 'bg-amber-500/20 text-amber-400'
+                          : displayStatus === 'generating'
+                          ? 'bg-blue-500/20 text-blue-400'
+                          : 'bg-red-500/20 text-red-400'
+                      }`}>
+                        {displayStatus}
+                      </span>
+                      <span className="text-dark-500 text-xs">
+                        {new Date(trip.createdAt).toLocaleDateString()}
+                      </span>
+                    </div>
+                  </Link>
+                </motion.div>
+              );
+            })}
           </motion.div>
         )}
       </div>
